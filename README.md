@@ -17,7 +17,7 @@ Tomasz Szołdra is not an author of the original `jVMC` package. This extension 
 creators of the `jVMC` software. This project is still in the development phase.
 
 # How it works
-- Dimensions $2<d<150$ for SIC-POVMs are implemented using the `qbsim` package. 
+- Dimensions $2 < d < 150$ for SIC-POVMs are implemented using the `qbsim` package. 
 
 - We add an extra lattice site with index $L$ that contains the configuration of the cavity mode. 
 It can have a different local dimension than the lattice sites indexed by $0...(L-1)$.
@@ -43,7 +43,6 @@ layer (red) is added. Then $\mathbf{a}$ is the configuration of the lattice and 
 
 It is important to note that there is another dense layer at the input to the LSTM/RNN. This change was adopted in jVMC 
 commit *[a8cf7c5](https://github.com/markusschmitt/vmc_jax/commit/a8cf7c5a71886ebb38db5a2dcf0eb9dddd4f2118)*.
-
 
 ![](LSTM.png)
 
