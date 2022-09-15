@@ -2,9 +2,10 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 from jVMC.util.symmetries import LatticeSymmetry
+import flax.linen as nn
 
 
-def get_orbit_1d(L, translation=True, reflection=True, **kwargs):
+def get_orbit_1d_LC(L, translation=True, reflection=True, **kwargs):
     """ This function generates the group of lattice symmetries in a one-dimensional lattice in a cavity.
     There are no symmetry operations applied to the cavity.
 
