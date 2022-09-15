@@ -1,6 +1,3 @@
-from jax.lib import xla_bridge
-
-
 from jax.config import config
 import jax.numpy as jnp
 import flax.linen as nn
@@ -37,13 +34,12 @@ inputDimCavity = 3
 
 
 w_l = 1.0  # lattice spin z magnetic field
-w_c = 1.0  # cavity largespin z magnetic field
-g = 1.0  # spin-largespin ZZ coupling strength
+w_c = 1.0  # cavity frequency
+g = 1.0  # spin-cavity coupling strength
 delta_l = 1.0  # lattice spin-spin ZZ coupling strength
 b_x_l = 1.0  # x magnetic field spin lattice
-b_x_c = 1.0  # x magnetic field largespin cavity
 
-kappa_c = 1.0  # cavity largespin decaydown rate
+kappa_c = 1.0  # cavity photon loss rate
 gamma_l = 0.0  # lattice spin decaydown rate
 Gamma_l = 0.0  # lattice spin decayup rate
 
@@ -58,7 +54,7 @@ initial_cavity_state_vector = np.zeros(inputDimCavity)
 
 # define initial state
 initial_lattice_state_vector[:] = 1.
-initial_cavity_state_vector[:] = 1.
+initial_cavity_state_vector[0] = 1.
 
 initial_lattice_state_vector = normalize(initial_lattice_state_vector)
 initial_cavity_state_vector = normalize(initial_cavity_state_vector)
@@ -90,24 +86,19 @@ sy_l = [op_lattice_tensor(Y_l, i) for i in range(L)]
 sz_l = [op_lattice_tensor(Z_l, i) for i in range(L)]
 
 
-S_c = (inputDimCavity-1.)/2.
-X_c, Y_c, Z_c = qutip.operators.jmat(S_c)
-sx_c = qutip.tensor(*qeye_lattice, X_c)
-sy_c = qutip.tensor(*qeye_lattice, Y_c)
-sz_c = qutip.tensor(*qeye_lattice, Z_c)
-sm_c = qutip.tensor(*qeye_lattice, (X_c - 1.j * Y_c) / 2.)
+a_c = qutip.tensor(*qeye_lattice, qutip.destroy(inputDimCavity))
 
 # Hamiltonian
-H = w_c * sz_c + b_x_c * sx_c
+H = w_c * a_c.dag() * a_c
 
 for i in range(L):
     H += w_l * sz_l[i]
     H += b_x_l * sx_l[i]
     H += delta_l * sz_l[i] * sz_l[(i + 1) % L]
-    H += g * sz_l[i] * sz_c
+    H += g * sx_l[i] * (a_c.dag() + a_c)
 
 # collapse operators
-c_ops = [np.sqrt(kappa_c) * sm_c,  # cavity decaydown
+c_ops = [np.sqrt(kappa_c) * a_c,  # cavity photon loss
          *[np.sqrt(gamma_l) * op for op in sm_l],  # lattice decaydown
          *[np.sqrt(Gamma_l) * op.dag() for op in sm_l],  # lattice decayup
          ]
@@ -116,17 +107,18 @@ c_ops = [np.sqrt(kappa_c) * sm_c,  # cavity decaydown
 # solve Lindblad equation and calculate observables
 tlist = np.arange(0, tmax, dt)
 opt = qutip.Odeoptions(nsteps=2000)  # allow extra time-steps
-output_exact = qutip.mesolve(H, psi0, tlist, c_ops, [*sz_l, sz_c], options=opt)  # exact
-# output_exact = qutip.mcsolve(H, psi0, tlist, c_ops, [*sz_l, sz_c], ntraj=500, options=opt)  # monte carlo
+output_exact = qutip.mesolve(H, psi0, tlist, c_ops, [*sz_l, a_c.dag() * a_c], options=opt)  # exact
+# output_exact = qutip.mcsolve(H, psi0, tlist, c_ops, [*sz_l, a_c.dag() * a_c], ntraj=500, options=opt)  # monte carlo
 
 Z_l_exact = np.array(output_exact.expect[:L])
-Z_c_exact = output_exact.expect[L]
+n_c_exact = output_exact.expect[L]
 
 
 def plot_exact():
-    plt.plot(tlist, Z_c_exact, '--', label="exact $Z_c$")
-    plt.plot(tlist, Z_l_exact[0], '--', label="exact $Z_l$")  # translational invariance, so we can plot only one Z_l[i]fig, ax = plt.subplots(1)
-
+    plt.plot(tlist, n_c_exact, '--b', alpha= 0.5, label="exact $n_c$")
+    plt.plot(tlist, Z_l_exact[0], '--r', alpha=0.5, label="exact $Z_l$")  # translational invariance, so we can plot only one Z_l[i]
+    plt.xlabel('time')
+    plt.ylabel('observable value')
 
 plt.ion()
 plot_exact()
@@ -141,10 +133,10 @@ hiddenSize = 8
 depth = 2
 initScale = 1.0
 cell = "LSTM"
-psi_kwargs = dict(batchSize=1000, seed=1234)
-sampler_id = "a"  # "e" for exact sampling, "a" for autoregressive sampling
+psi_kwargs = dict(batchSize=5000, seed=1234)
+sampler_id = "e"  # "e" for exact sampling, "a" for autoregressive sampling
 logProbFactor = 1
-sampler_kwargs = dict(numSamples=5000)
+sampler_kwargs = dict(numSamples=10000)
 
 exact_dim = inputDimLattice ** (2 * L) * inputDimCavity ** 2
 
@@ -160,9 +152,9 @@ orbit = get_orbit_1d_LC(L, translation=True, reflection=False)
 net_kwargs = dict(L=L,
                   hiddenSize=hiddenSize,
                   depth=depth,
-                  inputDimLattice=inputDimLattice ** 2,  # for SIC-POVM
+                  inputDimLattice=inputDimLattice**2,  # for SIC-POVM
                   actFun=nn.elu,
-                  inputDimCavity=inputDimCavity ** 2,  # for SIC-POVM
+                  inputDimCavity=inputDimCavity**2,  # for SIC-POVM
                   initScale=initScale,
                   logProbFactor=logProbFactor,
                   realValuedOutput=True,
@@ -192,33 +184,44 @@ else:
 
 Lindbladian = POVMOperator_LC(povm)
 
+# Hamiltonian
+H = w_c * a_c.dag() * a_c
+
+for i in range(L):
+    H += w_l * sz_l[i]
+    H += b_x_l * sx_l[i]
+    H += delta_l * sz_l[i] * sz_l[(i + 1) % L]
+    H += g * sx_l[i] * (a_c.dag() + a_c)
+
+
 # # Hamiltonian
-Lindbladian.add({"name": "Z_c", "strength": w_c, "sites": (L,)})  # H = w_c * sz_c
-Lindbladian.add({"name": "X_c", "strength": b_x_c, "sites": (L,)})  # H += b_x_c * sx_c
+Lindbladian.add({"name": "n_c", "strength": w_c, "sites": (L,)})  # H = w_c * sz_c
 
 for i in range(L):
     Lindbladian.add({"name": "Z_l", "strength": w_l, "sites": (i,)})  # H += w_l * sz_l[i]
     Lindbladian.add({"name": "X_l", "strength": b_x_l, "sites": (i,)})  # H += b_x_l * sx_l[i]
     Lindbladian.add(
         {"name": "Z_l_Z_l", "strength": delta_l, "sites": (i, (i + 1) % L)})  # H += delta * sz_l[i] * sz_l[(i + 1) % L]
-    Lindbladian.add({"name": "Z_l_Z_c", "strength": g, "sites": (i, L)})  # H += g * sz_l[i] * sz_c
+    Lindbladian.add({"name": "X_l_a_c", "strength": g, "sites": (i, L)})  # H += g * sx_l[i] * a_c
+    Lindbladian.add({"name": "X_l_adag_c", "strength": g, "sites": (i, L)})  # H += g * sx_l[i] * a_c.dag()
+
 
 # Dissipative part
-Lindbladian.add({"name": "decaydown_c", "strength": kappa_c, "sites": (L,)})  # np.sqrt(kappa_c) * sm_c
+Lindbladian.add({"name": "photonloss_c", "strength": kappa_c, "sites": (L,)})  # np.sqrt(kappa_c) * a_c
 for i in range(L):
     Lindbladian.add(
         {"name": "decaydown_l", "strength": gamma_l, "sites": (i,)})  # *[np.sqrt(gamma_l) * op for op in sm_l]
     Lindbladian.add(
         {"name": "decayup_l", "strength": Gamma_l, "sites": (i,)})  # *[np.sqrt(Gamma_l) * op.dag() for op in sm_l]
 
-outp = jVMC.util.OutputManager("outp_povm_rnn1d_general_test.hdf5", append=False)
+outp = jVMC.util.OutputManager("outp_open_spins_cavity.hdf5", append=False)
 
 # Set up TDVP
 tdvpEquation = jVMC.util.tdvp.TDVP(sampler, rhsPrefactor=-1.,
                                    svdTol=1e-6, diagonalShift=0, snrTol=2, diagonalizeOnDevice=False,
                                    makeReal='real', crossValidation=False)
 # ODE integrator
-stepper = jVMC.util.stepper.AdaptiveHeun(timeStep=dt, tol=1e-3)
+stepper = jVMC.util.stepper.AdaptiveHeun(timeStep=dt, tol=1e-4)
 # stepper = jVMC.util.stepper.Euler(timeStep=dt)
 
 t = 0
@@ -229,7 +232,7 @@ while t < tmax:
     tic = time.perf_counter()
     times.append(t)
     result = measure_povm_LC(Lindbladian.povm, sampler)
-    data.append([t, *(result['Z_l']['mean']), result['Z_c']['mean'][0]])
+    data.append([t, *(result['Z_l']['mean']), result['n_c']['mean'][0]])
 
     dp, dt = stepper.step(0, tdvpEquation, psi.get_parameters(),
                           hamiltonian=Lindbladian, psi=psi, outp=outp,
@@ -252,9 +255,16 @@ while t < tmax:
     npdata = np.array(data)
 
     plot_exact()
-    plt.plot(npdata[:, 0], np.mean(npdata[:, 1:L + 1], axis=1), label=f'$Z_l$')
-    plt.plot(npdata[:, 0], npdata[:, L + 1], label='$Z_c$')
+    plt.plot(npdata[:, 0], np.mean(npdata[:, 1:L + 1], axis=1), '-r', label=f'$Z_l$')
+    plt.plot(npdata[:, 0], npdata[:, L + 1], '-b', label='$n_c$')
 
     plt.legend()
     plt.pause(0.05)
     plt.clf()
+
+plot_exact()
+plt.plot(npdata[:, 0], np.mean(npdata[:, 1:L + 1], axis=1), '-r', label=f'$Z_l$')
+plt.plot(npdata[:, 0], npdata[:, L + 1], '-b', label='$n_c$')
+
+plt.legend()
+plt.pause(100000000)

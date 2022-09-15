@@ -1,6 +1,9 @@
 # jVMC_cavity
 ## _Extension of the jVMC codebase for lattice-cavity systems_
-![](Schematic.png)
+
+<p align="center">
+  <img src="Schematic.png">
+</p>
 
 _(figure adapted from the original jVMC paper *[arxiv:2108.03409](https://arxiv.org/abs/2108.03409)*)_
 # Why do you need this extension
@@ -44,44 +47,41 @@ layer (red) is added. Then $\mathbf{a}$ is the configuration of the lattice and 
 It is important to note that there is another dense layer at the input to the LSTM/RNN. This change was adopted in jVMC 
 commit *[a8cf7c5](https://github.com/markusschmitt/vmc_jax/commit/a8cf7c5a71886ebb38db5a2dcf0eb9dddd4f2118)*.
 
-![](LSTM.png)
+<p align="center">
+  <img src="LSTM.png">
+</p>
 
 ## Installation
 1. We recommend you create a new conda environment to work with `jVMC_cavity`:
 
         conda create -n jvmc_cavity python=3.9
         conda activate jvmc_cavity
+        conda install pip
+        pip install --upgrade pip
 
-5. Install two packages manually with `conda`:
+3. [Optional] For GPU support:
 
-        conda install mpi4py qutip
+        conda install -c conda-forge cudatoolkit=11.2 cudnn=8.2.1
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+        mkdir -p $CONDA_PREFIX/etc/conda/activate.d
+        echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
 
-2. Download the package
+
+3. Install two packages manually with `conda`:
+
+        conda install -c conda-forge mpi4py openmpi
+
+4. Download the package
 
         git clone https://github.com/tszoldra/jVMC_cavity
-        cd jVMC_cavity
+        
 
-4. ``pip``-install the package
+5. ``pip``-install the package
 
-        pip install jVMC_cavity
+        pip install -e jVMC_cavity
 
+6. [Optional] For GPU support:
 
-
-<!---
-442  conda create --name jaxgpu
-443  conda activate jaxgpu
-444  conda install mpi4py
-445  python
-446  conda install qutip
-447  pip install qbism
-448  python
-449  conda install python=3.9.7
-450  python --version
-451  conda install qutip
-452  cd jvmc/SpinPhoton2/vmc_jax/ # modified setup.py to not install jax - we will install it by hand
-453  pip install -e .
-454  pip install --upgrade "jax[cuda]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
-455  python -c "import jax"
-conda install -c conda-forge mpi4py openmpi
--->
+        pip install "jax[cuda11_cudnn82]==0.3.15" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+        pip install --upgrade flax
      
