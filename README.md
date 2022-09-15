@@ -8,7 +8,7 @@ _(figure adapted from the original jVMC paper *[arxiv:2108.03409](https://arxiv.
 using POVMs and neural networks. For simplicity it is assumed that the local Hilbert space dimension of the lattice 
 is $d=2$, i.e., one can only simulate spin-1/2 systems. 
 
-This extension allows one to handle dimensions $2<d<150$, as well as different local dimensions
+This extension allows one to handle dimensions $2< d < 150$, as well as different local dimensions
 for the lattice (dimension $d_1$) and some other single-body quantum system, eg. a photonic cavity 
 (dimension $d_2$).
 
