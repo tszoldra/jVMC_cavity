@@ -6,23 +6,23 @@ _(figure adapted from the original jVMC paper *[arxiv:2108.03409](https://arxiv.
 # Why do you need this extension
 `jVMC` codebase provides a complete framework to calculate time evolution of large 1-D and 2-D open quantum systems
 using POVMs and neural networks. For simplicity it is assumed that the local Hilbert space dimension of the lattice 
-is $$d=2$$, i.e., one can only simulate spin-1/2 systems. 
+is $d=2$, i.e., one can only simulate spin-1/2 systems. 
 
-This extension allows one to handle dimensions $$2<d<150$$, as well as different local dimensions
-for the lattice (dimension $$d_1$$) and some other single-body quantum system, eg. a photonic cavity 
-(dimension $$d_2$$).
+This extension allows one to handle dimensions $2<d<150$, as well as different local dimensions
+for the lattice (dimension $d_1$) and some other single-body quantum system, eg. a photonic cavity 
+(dimension $d_2$).
 
 # Disclaimer
 Tomasz Szołdra is not an author of the original `jVMC` package. This extension was not officially approved by the 
 creators of the `jVMC` software. This project is still in the development phase.
 
 # How it works
-- Dimensions $$2<d<150$$ for SIC-POVMs are implemented using the `qbsim` package. 
+- Dimensions $2<d<150$ for SIC-POVMs are implemented using the `qbsim` package. 
 
-- We add an extra lattice site with index $$L$$ that contains the configuration of the cavity mode. 
-It can have a different local dimension than the lattice sites indexed by $$0...(L-1)$$.
+- We add an extra lattice site with index $L$ that contains the configuration of the cavity mode. 
+It can have a different local dimension than the lattice sites indexed by $0...(L-1)$.
 
-- Operators acting on the cavity mode must act on lattice site with index $$L$$.
+- Operators acting on the cavity mode must act on lattice site with index $L$.
 
 
 # Working
@@ -39,7 +39,7 @@ It can have a different local dimension than the lattice sites indexed by $$0...
 In a normal setting, a dense layer (blue) is applied to the hidden state of the RNN and the log-probabilities of all
 configurations are returned. In the presence of cavity, autoregressive sampling is still possible after a slight modification. 
 To support the cavity mode with a different local dimension, another independent dense
-layer (red) is added. Then $$\mathbf{a}$$ is the configuration of the lattice and cavity.
+layer (red) is added. Then $\mathbf{a}$ is the configuration of the lattice and cavity.
 
 It is important to note that there is another dense layer at the input to the LSTM/RNN. This change was adopted in jVMC 
 commit *[a8cf7c5](https://github.com/markusschmitt/vmc_jax/commit/a8cf7c5a71886ebb38db5a2dcf0eb9dddd4f2118)*.
