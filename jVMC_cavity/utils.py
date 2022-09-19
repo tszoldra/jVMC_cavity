@@ -52,8 +52,8 @@ def set_initial_state(psi: NQS, povm: POVM_LC, state_vector: np.ndarray, subspac
     def set_bias_kernel(params):
         for k, v in params.items():
             if k == outDense:
-                v["bias"] = biases_subspace
-                v["kernel"] = 1e-15 * v["kernel"]
+                v["last_layer"]["bias"] = biases_subspace
+                v["last_layer"]["kernel"] = 1e-15 * v["last_layer"]["kernel"]
                 pass
             elif isinstance(v, dict):
                 set_bias_kernel(v)

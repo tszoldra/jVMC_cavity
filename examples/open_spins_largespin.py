@@ -136,10 +136,11 @@ plt.clf()
 
 ### NQS + POVM CALCULATIONS ###
 
-hiddenSize = 8
+hiddenSize = 6
 depth = 2
 initScale = 1.0
 cell = "LSTM"
+denseCavityLayers = (9, 9,)
 psi_kwargs = dict(batchSize=1000, seed=1234)
 sampler_id = "e"  # "e" for exact sampling, "a" for autoregressive sampling
 logProbFactor = 1
@@ -162,6 +163,7 @@ net_kwargs = dict(L=L,
                   inputDimLattice=inputDimLattice ** 2,  # for SIC-POVM
                   actFun=nn.elu,
                   inputDimCavity=inputDimCavity ** 2,  # for SIC-POVM
+                  denseCavityLayers=denseCavityLayers,
                   initScale=initScale,
                   logProbFactor=logProbFactor,
                   realValuedOutput=True,

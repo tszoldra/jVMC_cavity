@@ -39,9 +39,9 @@ g = 1.0  # spin-cavity coupling strength
 delta_l = 1.0  # lattice spin-spin ZZ coupling strength
 b_x_l = 1.0  # x magnetic field spin lattice
 
-kappa_c = 1.0  # cavity photon loss rate
-gamma_l = 0.0  # lattice spin decaydown rate
-Gamma_l = 0.0  # lattice spin decayup rate
+kappa_c = 2.0  # cavity photon loss rate
+gamma_l = 1.0  # lattice spin decaydown rate
+Gamma_l = 0.5  # lattice spin decayup rate
 
 tmax = 3
 dt = 1e-3
@@ -129,14 +129,15 @@ plt.clf()
 
 ### NQS + POVM CALCULATIONS ###
 
-hiddenSize = 8
+hiddenSize = 6
 depth = 2
 initScale = 1.0
 cell = "LSTM"
-psi_kwargs = dict(batchSize=5000, seed=1234)
-sampler_id = "e"  # "e" for exact sampling, "a" for autoregressive sampling
+denseCavityLayers = (9, 9,)
+psi_kwargs = dict(batchSize=1000, seed=1234)
+sampler_id = "a"  # "e" for exact sampling, "a" for autoregressive sampling
 logProbFactor = 1
-sampler_kwargs = dict(numSamples=10000)
+sampler_kwargs = dict(numSamples=1000)
 
 exact_dim = inputDimLattice ** (2 * L) * inputDimCavity ** 2
 
@@ -155,6 +156,7 @@ net_kwargs = dict(L=L,
                   inputDimLattice=inputDimLattice**2,  # for SIC-POVM
                   actFun=nn.elu,
                   inputDimCavity=inputDimCavity**2,  # for SIC-POVM
+                  denseCavityLayers=denseCavityLayers,
                   initScale=initScale,
                   logProbFactor=logProbFactor,
                   realValuedOutput=True,

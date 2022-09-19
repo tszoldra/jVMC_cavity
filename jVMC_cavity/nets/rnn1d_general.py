@@ -21,6 +21,23 @@ from functools import partial
 from typing import Sequence
 
 
+class MultiLayerPerceptron(nn.Module):
+    features: Sequence[int]
+    actFun: callable
+    init_args: dict
+
+    @nn.compact
+    def __call__(self, x):
+        for feat in self.features[:-1]:
+            x = self.actFun(nn.Dense(features=feat, **self.init_args)(x))
+
+        x = nn.Dense(features=self.features[-1],
+                     use_bias=True,
+                     **self.init_args,
+                     name='last_layer')(x)
+        return x
+
+
 class RNN1DGeneral_LC(nn.Module):
     """
     Implementation of a multi-layer RNN for one-dimensional data with arbitrary cell.
@@ -49,6 +66,7 @@ class RNN1DGeneral_LC(nn.Module):
         * ``depth``: number of RNN-cells in the RNNCellStack
         * ``inputDimLattice``: dimension of the local configuration space for lattice
         * ``inputDimCavity``: dimension of the local configuration space for cavity
+        * ``denseCavityLayers``: tuple of layer sizes of the multiperceptron whose output is the cavity state, not including the last layer that is constructed automatically. For a single layer with linear activation, provide (None,).
         * ``actFun``: non-linear activation function for the RNN cells
         * ``initScale``: factor by which the initial parameters are scaled
         * ``logProbFactor``: factor defining how output and associated sample probability are related. 0.5 for pure states and 1 for POVMs.
@@ -65,6 +83,7 @@ class RNN1DGeneral_LC(nn.Module):
     inputDimLattice: int = 2
     actFun: callable = nn.elu
     inputDimCavity: int = 2
+    denseCavityLayers: tuple = (None, )
 
 
     initScale: float = 1.0
@@ -106,11 +125,17 @@ class RNN1DGeneral_LC(nn.Module):
         init_args = init_fn_args(dtype=self.dtype, bias_init=jax.nn.initializers.zeros, kernel_init=self.initFunction)
 
         # CHANGED FROM jVMC - there was features=(self.inputDim - 1)*...
-        self.outputDenseLattice = nn.Dense(features=self.inputDimLattice * (2 - self.realValuedOutput),
-                                           use_bias=True, **init_args)
+        self.outputDenseLattice = MultiLayerPerceptron(features=[self.inputDimLattice * (2 - self.realValuedOutput)],
+                                                          actFun=self.actFun, init_args=init_args)
 
-        self.outputDenseCavity = nn.Dense(features=self.inputDimCavity * (2 - self.realValuedOutput),
-                                          use_bias=True, **init_args)
+        if self.denseCavityLayers[0] is None:
+            self.outputDenseCavity = MultiLayerPerceptron(features=[self.inputDimCavity * (2 - self.realValuedOutput)],
+                                                          actFun=self.actFun, init_args=init_args)
+        else:
+            self.outputDenseCavity = MultiLayerPerceptron(features=[*self.denseCavityLayers,
+                                                                    self.inputDimCavity * (2 - self.realValuedOutput)],
+                                                          actFun=self.actFun, init_args=init_args)
+
 
     def log_coeffs_to_log_probs(self, logCoeffs, inputDim):
         phase = jnp.zeros(inputDim)
@@ -230,6 +255,7 @@ class RNN1DGeneral_LCSym(nn.Module):
     inputDimLattice: int = 2
     actFun: callable = nn.elu
     inputDimCavity: int = 2
+    denseCavityLayers: tuple = (None,)
 
 
     initScale: float = 1.0
@@ -243,11 +269,12 @@ class RNN1DGeneral_LCSym(nn.Module):
         self.rnn = RNN1DGeneral_LC(L=self.L, hiddenSize=self.hiddenSize, depth=self.depth,
                                 inputDimLattice=self.inputDimLattice,
                                 actFun=self.actFun, inputDimCavity=self.inputDimCavity,
+                                denseCavityLayers=self.denseCavityLayers,
                                 initScale=self.initScale,
                                 logProbFactor=self.logProbFactor,
                                 realValuedOutput=self.realValuedOutput,
                                 realValuedParams=self.realValuedParams,
-                                cell=self.cell)  # bug in jVMC
+                                cell=self.cell)  # bug in jVMC?
 
     def __call__(self, x):
 
