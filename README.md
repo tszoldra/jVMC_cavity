@@ -62,14 +62,12 @@ See `examples/` folder or an interactive notebook (button above).
 - Complex numbers in the RNN Ansatz
 
 # Autoregressive sampling for lattice-cavity system
-In the original setting, a dense layer (blue) is applied to the hidden state of the RNN and the log-probabilities of all
+In the original setting, a dense layer with linear activation (blue) is applied to the hidden state of the RNN and the log-probabilities of all
 configurations are returned. Here, in the presence of cavity, autoregressive sampling is still possible after a slight modification. 
-To support the cavity mode with a different local dimension, another independent dense
-layer (red) is added. Then $\mathbf{a}$ is the configuration of the lattice and cavity.
+To support the cavity mode with a different local dimension, another independent dense multilayer perceptron (MLP, red) is added. 
+Last layer of the MLP has linear activation. $\mathbf{a}$ is the configuration of the lattice and cavity together.
 
-It is important to note that there is another dense layer at the input to the LSTM/RNN. This change was adopted in jVMC 
-commit *[a8cf7c5](https://github.com/markusschmitt/vmc_jax/commit/a8cf7c5a71886ebb38db5a2dcf0eb9dddd4f2118)*.
-
+There is another linear dense layer at the input to the LSTM/RNN (pink in the picture).
 <p align="center">
   <img src="ARNN.png">
 </p>
