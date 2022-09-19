@@ -42,9 +42,8 @@ It can have a different local dimension than the lattice sites indexed by $0...(
 - Operators acting on the lattice must act on sites $0...(L-1)$.
 
 # Examples
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1f40fE_UMGb_EQJBCaFiJpQ81YOyFMVcP?usp=sharing)
 
-See `examples/` folder or an interactive notebook (button above).
+See `examples/` folder or an interactive notebook with the toy model of a spin lattice in a dissipative cavity directly at [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1f40fE_UMGb_EQJBCaFiJpQ81YOyFMVcP?usp=sharing).
 
 # Current development status
 ## Working
