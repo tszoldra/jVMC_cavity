@@ -15,11 +15,16 @@ This extension allows one to handle dimensions $2< d < 150$, as well as differen
 for the lattice (dimension $d_1$) and some other single-body quantum system, eg. a photonic cavity 
 (dimension $d_2$). 
 
+# Author
+Tomasz Szołdra, Jagiellonian University in Krakow, Poland
+
+A large part of the code is rewritten and adapted from the original `jVMC` repository.
+
 # Disclaimer
 Tomasz Szołdra is not an author of the original `jVMC` package. This extension was not officially approved by the 
 creators of the `jVMC` software. This project is still in the development phase.
 
-# How to use it
+# How to use this
 
 - We add an extra lattice site with index $L$ that contains the configuration of the cavity mode. 
 It can have a different local dimension than the lattice sites indexed by $0...(L-1)$.
@@ -41,6 +46,7 @@ It can have a different local dimension than the lattice sites indexed by $0...(
 - Operators acting on the cavity mode must act on site with index $L$. 
 - Operators acting on the lattice must act on sites $0...(L-1)$.
 
+For other things, refer to the documentation.
 # Examples
 
 See `examples/` folder or an interactive notebook with the toy model of a spin lattice in a dissipative cavity directly at [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1f40fE_UMGb_EQJBCaFiJpQ81YOyFMVcP?usp=sharing).
@@ -59,6 +65,7 @@ See `examples/` folder or an interactive notebook with the toy model of a spin l
 - Observables: 2-body correlations
 - Operators of arbitrary length
 - Complex numbers in the RNN Ansatz
+- Documentation
 
 # Autoregressive sampling for lattice-cavity system
 In the original setting, a dense layer with linear activation (blue) is applied to the hidden state of the RNN and the log-probabilities of all
