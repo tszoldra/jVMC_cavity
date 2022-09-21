@@ -66,7 +66,7 @@ class RNN1DGeneral_LC(nn.Module):
         * ``depth``: number of RNN-cells in the RNNCellStack
         * ``inputDimLattice``: dimension of the local configuration space for lattice
         * ``inputDimCavity``: dimension of the local configuration space for cavity
-        * ``denseCavityLayers``: tuple of layer sizes of the multiperceptron whose output is the cavity state, not including the last layer that is constructed automatically. For a single layer with linear activation, provide (None,).
+        * ``denseCavityLayers``: Tuple of layer sizes of the multiperceptron whose output is the cavity state, not including the last layer that is constructed automatically. For a single layer with linear activation, provide (None,).
         * ``actFun``: non-linear activation function for the RNN cells
         * ``initScale``: factor by which the initial parameters are scaled
         * ``logProbFactor``: factor defining how output and associated sample probability are related. 0.5 for pure states and 1 for POVMs.
@@ -84,7 +84,6 @@ class RNN1DGeneral_LC(nn.Module):
     actFun: callable = nn.elu
     inputDimCavity: int = 2
     denseCavityLayers: tuple = (None, )
-
 
     initScale: float = 1.0
     logProbFactor: float = 0.5

@@ -135,7 +135,7 @@ initScale = 1.0
 cell = "LSTM"
 denseCavityLayers = (9, 9,)
 psi_kwargs = dict(batchSize=1000, seed=1234)
-sampler_id = "a"  # "e" for exact sampling, "a" for autoregressive sampling
+sampler_id = "e"  # "e" for exact sampling, "a" for autoregressive sampling
 logProbFactor = 1
 sampler_kwargs = dict(numSamples=1000)
 
