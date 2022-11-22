@@ -2,6 +2,7 @@ import qbism
 import qutip
 import jax
 import jax.numpy as jnp
+import scipy  # jax.scipy.sqrtm not implemented on GPU
 
 import jVMC.global_defs as global_defs
 import jVMC.mpi_wrapper as mpi
@@ -107,23 +108,55 @@ def get_1_particle_distributions_LC(state_vector, povm, subspace: str):
     return probs
 
 
-def get_M(d):
-    """Returns ``d^2`` SIC-POVM measurement operators for local Hilbert space dimension ``d``.
+def get_M(d, ic_povm='symmetric'):
+    """Returns ``d^2`` IC-POVM measurement operators for local Hilbert space dimension ``d``.
 
     Args:
         * ``d`` - local dimension of the local Hilbert space.
-        Must be less or equal ``151``.
+        For SIC-POVM must be less or equal ``151``.
+        * ``ic_povm`` - type of the minimal, informationally complete POVM.
+        Can be 'symmetric' for SIC-POVM or 'orthocross'. The latter is constructed fast for arbitrary dimension\
+        and is supposedly better suited for dimensions ``d>2`` in Fock space with high occupancy of small\
+        number of particles mode.
 
     Returns:
         jnp.array with the leading axis giving the different POVM-Measurement operators.
 
     """
-    if d > 151:
+    if d > 151 and ic_povm == 'symmetric':
         raise NotImplementedError('SIC-POVMs for dimension more than 151 are not implemented.')
 
-    M = jnp.array([_op_from_qutip(q) for q in qbism.sic_povm(d)], dtype=global_defs.tCpx)
+    if ic_povm == 'symmetric':
+        M = jnp.array([_op_from_qutip(q) for q in qbism.sic_povm(d)], dtype=global_defs.tCpx)
+        return M
+    elif ic_povm == 'orthocross':
+        # implementation follows
+        # J. DeBrota, PhD Thesis, Informationally Complete Measurements and Optimal
+        # Representations of Quantum Theory, University of Massachusetts Boston, 2020
+        # pages 30-31.
+        # https://scholarworks.umb.edu/cgi/viewcontent.cgi?article=1616&context=doctoral_dissertations
 
-    return M
+        # first d elements are projectors |alpha><alpha|
+        projectors_Pi = [qutip.basis(d, j).proj() for j in range(d)]
+
+        # rest - off-diagonal coherence terms
+        for k in range(d):
+            for j in range(k):
+                e_j = qutip.basis(d, j)
+                e_k = qutip.basis(d, k)
+                projectors_Pi.append(0.5 * (e_j + e_k) * (e_j.dag() + e_k.dag()))
+                projectors_Pi.append(0.5 * (e_j + 1.0j * e_k) * (e_j.dag() - 1.0j * e_k.dag()))
+
+        assert abs(len(projectors_Pi) - d**2) < 1e-12
+
+        projectors_Pi = jnp.array([_op_from_qutip(op) for op in projectors_Pi])
+        omega = jnp.asarray(jnp.sum(projectors_Pi, axis=0))
+        omega_inv_sqrtm = jnp.array(scipy.linalg.inv(scipy.linalg.sqrtm(omega)))
+        # workaround with scipy - jax.scipy.sqrtm not implemented.
+
+        M = jnp.einsum('ij, ajk, kl -> ail', omega_inv_sqrtm, projectors_Pi, omega_inv_sqrtm)
+
+        return M
 
 
 def M_2Body(M1, M2):
@@ -205,13 +238,25 @@ class POVM_LC():
         * ``inputDimCavity``: size of the cavity local Hilbert space
         * ``inputDimLattice``: size of the lattice local Hilbert space
         * ``maxCorrLength``: maximal distance between lattice sites for correlation calculation
+        * ``icPOVMCavity``: type of the minimal, informationally complete POVM for the cavity part.
+        Can be 'symmetric' for SIC-POVM or 'orthocross'. The latter is constructed fast for arbitrary dimension\
+        and is supposedly better suited for dimensions ``d>2`` in Fock space with high occupancy of small\
+        number of particles mode.
+        * ``icPOVMLattice``: type of the minimal, informationally complete POVM for the lattice part.
+        Can be 'symmetric' for SIC-POVM or 'orthocross'. The latter is constructed fast for arbitrary dimension\
+        and is supposedly better suited for dimensions ``d>2`` in Fock space with high occupancy of small\
+        number of particles mode. For spins-1/2, choose 'symmetric'.
     """
 
-    def __init__(self, L, inputDimCavity, inputDimLattice, maxCorrLength=0):
+    def __init__(self, L, inputDimCavity, inputDimLattice, maxCorrLength=0,
+                 icPOVMCavity='symmetric',
+                 icPOVMLattice='symmetric'):
         self.L = L
         self.inputDimCavity = inputDimCavity
         self.inputDimLattice = inputDimLattice
         self.maxCorrLength = maxCorrLength
+        self.icPOVMCavity = icPOVMCavity
+        self.icPOVMLattice = icPOVMLattice
         self.set_standard_povm_operators()
         if maxCorrLength > 0:
             raise NotImplementedError('Correlation calculation not implemented.')
@@ -227,8 +272,8 @@ class POVM_LC():
         """
         Obtain matrices required for dynamics and observables.
         """
-        self.M_l = get_M(self.inputDimLattice)
-        self.M_c = get_M(self.inputDimCavity)
+        self.M_l = get_M(self.inputDimLattice, ic_povm=self.icPOVMLattice)
+        self.M_c = get_M(self.inputDimCavity, ic_povm=self.icPOVMCavity)
 
         def TT_inv(M1, M2):
             T = jnp.einsum('aij, bji -> ab', M1, M2)

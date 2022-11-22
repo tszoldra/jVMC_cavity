@@ -145,13 +145,17 @@ psi_kwargs = dict(batchSize=1000, seed=1234)
 sampler_id = "e"  # "e" for exact sampling, "a" for autoregressive sampling
 logProbFactor = 1
 sampler_kwargs = dict(numSamples=5000)
+icPOVMCavity = 'symmetric'  # 'orthocross'
+icPOVMLattice = 'symmetric'  # 'orthocross'
 
 exact_dim = inputDimLattice ** (2 * L) * inputDimCavity ** 2
 
 povm = POVM_LC(L,
                inputDimCavity=inputDimCavity,
                inputDimLattice=inputDimLattice,
-               maxCorrLength=0)
+               maxCorrLength=0,
+               icPOVMCavity=icPOVMCavity,
+               icPOVMLattice=icPOVMLattice)
 
 # Initialize net
 sample_shape = (L + 1,)
