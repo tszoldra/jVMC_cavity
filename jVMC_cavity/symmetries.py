@@ -5,7 +5,7 @@ from jVMC.util.symmetries import LatticeSymmetry
 import flax.linen as nn
 
 
-def get_orbit_1d_LC(L, translation=True, reflection=True, **kwargs):
+def get_orbit_1d_LC(L, translation=True, reflection=True, translation_by_2=False, **kwargs):
     """ This function generates the group of lattice symmetries in a one-dimensional lattice in a cavity.
     There are no symmetry operations applied to the cavity.
 
@@ -43,10 +43,31 @@ def get_orbit_1d_LC(L, translation=True, reflection=True, **kwargs):
         else:
             return jnp.array([jnp.eye(L+1)])
 
+    def get_translation_by_2_orbit_1D(L, translation_by_2):
+        to_s = np.array([np.eye(L)] * 2)
+        to_sp = [None] * 2
+        for idx, t in enumerate(to_s):
+            if idx == 0:
+                to_s[idx] = np.roll(t, 0, axis=1)
+            elif idx == 1:
+                to_s[idx] = np.roll(t, 2, axis=1)
+
+            to_sp[idx] = np.block([
+                [to_s[idx], np.zeros((L, 1))],
+                [np.zeros((1, L)), np.eye(1)]
+            ])
+        if translation_by_2:
+            return jnp.array(to_sp)
+        else:
+            return jnp.array([jnp.eye(L + 1)])
+
     po = get_point_orbit_1D(L, reflection)
     to = get_translation_orbit_1D(L, translation)
-    orbit = jax.vmap(lambda x, y: jax.vmap(lambda a, b: jnp.dot(a, b), in_axes=(None, 0))(x, y), in_axes=(0, None))(to,
-                                                                                                                    po)
+    to_by_2 = get_translation_by_2_orbit_1D(L, translation_by_2)
+
+    #orbit = jax.vmap(lambda x, y: jax.vmap(lambda a, b: jnp.dot(a, b), in_axes=(None, 0))(x, y, z), in_axes=(0, None))(to,
+    #                                                                                                                po)
+    orbit = jnp.einsum('aij, bjk, ckl -> abcil', to, po, to_by_2)
 
     orbit = orbit.reshape((-1, L+1, L+1))
     return LatticeSymmetry(orbit.astype(np.int32))

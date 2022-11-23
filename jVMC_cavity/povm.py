@@ -151,7 +151,7 @@ def get_M(d, ic_povm='symmetric'):
 
         projectors_Pi = jnp.array([_op_from_qutip(op) for op in projectors_Pi])
         omega = jnp.asarray(jnp.sum(projectors_Pi, axis=0))
-        omega_inv_sqrtm = jnp.array(scipy.linalg.inv(scipy.linalg.sqrtm(omega)))
+        omega_inv_sqrtm = jnp.array(scipy.linalg.inv(scipy.linalg.sqrtm(omega)), dtype=global_defs.tCpx)
         # workaround with scipy - jax.scipy.sqrtm not implemented.
 
         M = jnp.einsum('ij, ajk, kl -> ail', omega_inv_sqrtm, projectors_Pi, omega_inv_sqrtm)

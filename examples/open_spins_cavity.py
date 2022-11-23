@@ -138,8 +138,8 @@ psi_kwargs = dict(batchSize=1000, seed=1234)
 sampler_id = "e"  # "e" for exact sampling, "a" for autoregressive sampling
 logProbFactor = 1
 sampler_kwargs = dict(numSamples=1000)
-icPOVMCavity = 'symmetric'  # 'orthocross'
-icPOVMLattice = 'symmetric'  # 'orthocross'
+icPOVMCavity = 'orthocross'#'symmetric'  # 'orthocross'
+icPOVMLattice = 'orthocross' #'symmetric'  # 'orthocross'
 
 exact_dim = inputDimLattice ** (2 * L) * inputDimCavity ** 2
 
