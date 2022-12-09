@@ -13,11 +13,15 @@ def get_orbit_1d_LC(L, translation=True, reflection=True, translation_by_2=False
         * ``L``: Linear dimension of the lattice.
         * ``reflection``: Boolean to indicate whether reflections are to be included
         * ``translation``: Boolean to indicate whether translations are to be included
+        * ``translation_by_2``: Boolean to indicate whether translations by 2 are to be included
 
     Returns:
         A three-dimensional ``jax.numpy.array``, where the first dimension corresponds to the different
         symmetry operations and the following two dimensions correspond to the corresponding permutation matrix.
     """
+    if translation_by_2 and L % 2 != 0:
+        raise ValueError('For translation_by_2 symmetry orbit, the lattice size must be an even number. PBC must be assumed.')
+
 
     def get_point_orbit_1D(L, reflection):
         if reflection:
@@ -44,19 +48,15 @@ def get_orbit_1d_LC(L, translation=True, reflection=True, translation_by_2=False
             return jnp.array([jnp.eye(L+1)])
 
     def get_translation_by_2_orbit_1D(L, translation_by_2):
-        to_s = np.array([np.eye(L)] * 2)
-        to_sp = [None] * 2
+        to_s = np.array([np.eye(L)] * (L // 2))
+        to_sp = [None] * (L // 2)
         for idx, t in enumerate(to_s):
-            if idx == 0:
-                to_s[idx] = np.roll(t, 0, axis=1)
-            elif idx == 1:
-                to_s[idx] = np.roll(t, 2, axis=1)
-
+            to_s[idx] = np.roll(t, 2 * idx, axis=1)
             to_sp[idx] = np.block([
                 [to_s[idx], np.zeros((L, 1))],
                 [np.zeros((1, L)), np.eye(1)]
             ])
-        if translation_by_2:
+        if translation_by_2 and L >= 4:
             return jnp.array(to_sp)
         else:
             return jnp.array([jnp.eye(L + 1)])

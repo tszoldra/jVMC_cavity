@@ -1,3 +1,5 @@
+from abc import ABC
+
 import qbism
 import qutip
 import jax
@@ -6,7 +8,7 @@ import scipy  # jax.scipy.sqrtm not implemented on GPU
 
 import jVMC.global_defs as global_defs
 import jVMC.mpi_wrapper as mpi
-from jVMC.operator import Operator
+import jVMC.operator
 
 import functools
 
@@ -461,6 +463,14 @@ class POVM_LC():
         #     corrPerSamplePerSpin[corrLen] = self._evaluate_correlators_pmapd(resPerSamplePerSpin, corrLen)
 
         return resPerSamplePerSpin, corrPerSamplePerSpin
+
+
+class Operator(jVMC.operator.Operator):
+    def __init__(self):
+        super().__init__()
+        self._alloc_Oloc_pmapd = global_defs.pmap_for_my_devices(
+            lambda s: jnp.zeros(s.shape[0], dtype=global_defs.tReal))
+        # in the POVM space, the values of Oloc are real
 
 
 class POVMOperator_LC(Operator):
