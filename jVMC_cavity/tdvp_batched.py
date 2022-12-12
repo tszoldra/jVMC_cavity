@@ -52,25 +52,19 @@ class TDVP_batched(TDVP):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-
     def __call__(self, netParameters, t, *, psi, hamiltonian, **rhsArgs):
-        """ For given network parameters this function solves the TDVP equation calculating Eloc in batches.
+        """ For given network parameters this function solves the TDVP equation.
 
         This function returns :math:`\\dot\\theta=S^{-1}F`. Thereby an instance of the ``TDVP`` class is a suited
-        callable for the right hand side of an ODE to be used in combination with the integration schemes 
+        callable for the right hand side of an ODE to be used in combination with the integration schemes
         implemented in ``jVMC.stepper``. Alternatively, the interface matches the scipy ODE solvers as well.
-
-        Avoids the OOM issues for operators with a large number of offdiagonal terms by batching,
-        with a batch size specified by ``psi.batchSize``.
-        It makes sense to use it if the number of offdiagonal terms for all operators
-        is larger than the number of parameters in the NQS.
 
         Arguments:
             * ``netParameters``: Parameters of the NQS.
             * ``t``: Current time.
             * ``psi``: NQS ansatz. Instance of ``jVMC.vqs.NQS``.
             * ``hamiltonian``: Hamiltonian operator, i.e., an instance of a derived class of ``jVMC.operator.Operator``. \
-                                *Notice:* Current time ``t`` is by default passed as argument when computing matrix elements. 
+                                *Notice:* Current time ``t`` is by default passed as argument when computing matrix elements.
 
         Further optional keyword arguments:
             * ``numSamples``: Number of samples to be used by MC sampler.
@@ -110,8 +104,8 @@ class TDVP_batched(TDVP):
         sampleConfigs, sampleLogPsi, p = self.sampler.sample(numSamples=numSamples)
         stop_timing(outp, "sampling", waitFor=sampleConfigs)
 
-        # # Evaluate local energy
-        # start_timing(outp, "compute Eloc")
+        # Evaluate local energy
+        start_timing(outp, "compute Eloc")
         # sampleOffdConfigs, matEls = hamiltonian.get_s_primes(sampleConfigs, t)
         # start_timing(outp, "evaluate off-diagonal")
         # sampleLogPsiOffd = psi(sampleOffdConfigs)
@@ -142,10 +136,13 @@ class TDVP_batched(TDVP):
 
                 self.ElocMean0 = self.ElocMean
                 self.ElocVar0 = self.ElocVar
-                self.tdvpError = self._get_tdvp_error(update)
-                self.solverResidual = solverResidual
-                self.snr0 = self.snr
-                self.ev0 = self.ev
+
+                self.metaData = {
+                    "tdvp_error": self._get_tdvp_error(update),
+                    "tdvp_residual": solverResidual,
+                    "SNR": self.snr,
+                    "Spectrum": self.ev,
+                }
 
                 if self.crossValidation:
 
@@ -158,7 +155,8 @@ class TDVP_batched(TDVP):
 
                     validation_tdvpErr = self._get_tdvp_error(update_1)
                     update, solverResidual = self.solve(Eloc, sampleGradients, p)
-                    validation_residual = (jnp.linalg.norm(S2.dot(update_1) - F2) / jnp.linalg.norm(F2)) / solverResidual
+                    validation_residual = (jnp.linalg.norm(S2.dot(update_1) - F2) / jnp.linalg.norm(
+                        F2)) / solverResidual
 
                     self.crossValidationFactor_residual = validation_residual
                     self.crossValidationFactor_tdvpErr = validation_tdvpErr / self.tdvpError

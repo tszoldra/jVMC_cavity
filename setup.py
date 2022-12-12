@@ -8,7 +8,7 @@ DEV_DEPENDENCIES = DEFAULT_DEPENDENCIES + ["sphinx", "mock", "sphinx_rtd_theme"]
 
 setuptools.setup(
     name='jVMC_cavity',
-    version='0.0.1',
+    version='0.0.2',
     author="Tomasz Szoldra",
     author_email="t.szoldra@gmail.com",
     description="jVMC_cavity: Extension of the jVMC codebase for lattice-cavity systems",
