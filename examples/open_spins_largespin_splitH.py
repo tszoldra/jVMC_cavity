@@ -1,4 +1,4 @@
-from jax.config import config
+from jax import config
 import jax.numpy as jnp
 import flax.linen as nn
 
@@ -12,10 +12,12 @@ import copy
 import qutip
 
 import jVMC
+from jVMC.nets import SymNet
+
 from jVMC_cavity.povm import POVM_LC, POVMOperator_LC, measure_povm_LC
 from jVMC_cavity.sampler import ExactSampler_LC
 from jVMC_cavity.symmetries import get_orbit_1d_LC
-from jVMC_cavity.nets.rnn1d_general import RNN1DGeneral_LC2Sym
+from jVMC_cavity.nets.rnn1d_general import RNN1DGeneral_LC2
 from jVMC_cavity.utils import normalize, norm_fun, set_initial_state
 from jVMC_cavity.tdvp_batched import TDVP_batched
 
@@ -45,7 +47,7 @@ kappa_c = 3.0  # cavity largespin decaydown rate
 gamma_l = 3.0  # lattice spin decaydown rate
 Gamma_l = 0.0  # lattice spin decayup rate
 
-tmax = 50
+tmax = 1
 dt = 1e-3
 
 
@@ -174,10 +176,10 @@ net_kwargs = dict(L=L,
                   realValuedOutput=True,
                   realValuedParams=True,
                   cell=cell,
-                  orbit=orbit,
                   )
 
-net = RNN1DGeneral_LC2Sym(**net_kwargs)
+base_net = RNN1DGeneral_LC2(**net_kwargs)
+net = SymNet(orbit=orbit, net=base_net)
 
 psi = jVMC.vqs.NQS(net, **psi_kwargs)
 # to compile one has to evaluate once with a certain dimensional input
@@ -221,12 +223,12 @@ for i in range(L):
 outp = jVMC.util.OutputManager("outp_open_spins_largespin.hdf5", append=False)
 
 # Set up TDVP
-# tdvpEquation = jVMC.util.tdvp.TDVP(sampler, rhsPrefactor=-1.,
-#                                    svdTol=1e-8, diagonalShift=0, snrTol=2, diagonalizeOnDevice=False,
-#                                    makeReal='real', crossValidation=False)
-tdvpEquation = TDVP_batched(sampler, rhsPrefactor=-1.,
-                                   svdTol=1e-6, diagonalShift=0, snrTol=2, diagonalizeOnDevice=False,
+tdvpEquation = jVMC.util.tdvp.TDVP(sampler, rhsPrefactor=-1.,
+                                   svdTol=1e-8, diagonalShift=0, snrTol=2, diagonalizeOnDevice=False,
                                    makeReal='real', crossValidation=False)
+# tdvpEquation = TDVP_batched(sampler, rhsPrefactor=-1.,
+#                                    svdTol=1e-6, diagonalShift=0, snrTol=2, diagonalizeOnDevice=False,
+#                                    makeReal='real', crossValidation=False)
 
 # ODE integrator
 stepper = jVMC.util.stepper.AdaptiveHeun(timeStep=dt, tol=1e-4)

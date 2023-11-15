@@ -3,12 +3,12 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-DEFAULT_DEPENDENCIES = ["setuptools", "jVMC", "qbism"]
+DEFAULT_DEPENDENCIES = ["setuptools", "jVMC>=1.2.4" , "qbism"]
 DEV_DEPENDENCIES = DEFAULT_DEPENDENCIES + ["sphinx", "mock", "sphinx_rtd_theme"]
 
 setuptools.setup(
     name='jVMC_cavity',
-    version='0.0.2',
+    version='0.0.3',
     author="Tomasz Szoldra",
     author_email="t.szoldra@gmail.com",
     description="jVMC_cavity: Extension of the jVMC codebase for lattice-cavity systems",

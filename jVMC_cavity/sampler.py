@@ -131,4 +131,7 @@ class ExactSampler_LC:
     def set_number_of_samples(self, N):
         pass
 
+    def get_last_number_of_samples(self):
+        return self.basis.shape[0]
+
 # ** end class ExactSampler

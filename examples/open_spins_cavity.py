@@ -12,10 +12,12 @@ import copy
 import qutip
 
 import jVMC
+from jVMC.nets import SymNet
+
 from jVMC_cavity.povm import POVM_LC, POVMOperator_LC, measure_povm_LC
 from jVMC_cavity.sampler import ExactSampler_LC
 from jVMC_cavity.symmetries import get_orbit_1d_LC
-from jVMC_cavity.nets.rnn1d_general import RNN1DGeneral_LCSym
+from jVMC_cavity.nets.rnn1d_general import RNN1DGeneral_LC
 from jVMC_cavity.utils import normalize, norm_fun, set_initial_state
 
 config.update("jax_enable_x64", True)
@@ -168,7 +170,8 @@ net_kwargs = dict(L=L,
                   cell=cell,
                   orbit=orbit)
 
-net = RNN1DGeneral_LCSym(**net_kwargs)
+base_net = RNN1DGeneral_LC(**net_kwargs)
+net = SymNet(orbit=orbit, net=base_net)
 
 psi = jVMC.vqs.NQS(net, **psi_kwargs)
 # to compile one has to evaluate once with a certain dimensional input

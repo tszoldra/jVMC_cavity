@@ -11,7 +11,7 @@ _(figure adapted from the original jVMC paper *[arxiv:2108.03409](https://arxiv.
 using POVMs and neural networks. For simplicity it is assumed that the local Hilbert space dimension of the lattice 
 is $d=2$, i.e., one can only simulate spin-1/2 systems. 
 
-This extension allows one to handle dimensions $2< d < 150$, as well as different local dimensions
+This extension allows one to handle dimensions $2< d < 150$ with SIC-POVMs and arbitrary dimensions with orthocross POVM, as well as different local dimensions
 for the lattice (dimension $d_1$) and some other single-body quantum system, eg. a photonic cavity 
 (dimension $d_2$). 
 
@@ -55,6 +55,7 @@ See `examples/` folder or an interactive notebook with the toy model of a spin l
 ## Working
 - Time evolution of an open system: 1-D lattice and cavity, single- and 2-body terms in the Hamiltonian
 - SIC-POVMs for higher dimensions $2 < d < 150$ are supported through the `qbsim` package.
+- Orthocross POVMs for arbitrary local dimension are now supported.
 - Spin X, Y, Z operators for arbitrary spin S
 - Bosonic creation, annihilation, number operators
 - Single-body observables: X, Y, Z and bosonic operators
@@ -88,7 +89,7 @@ There is another linear dense layer at the input to the LSTM/RNN (pink in the pi
 
 3. [Optional] For GPU support:
 
-        conda install -c conda-forge cudatoolkit=11.2 cudnn=8.2.1
+        conda install -c conda-forge cudatoolkit=11.8
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
         mkdir -p $CONDA_PREFIX/etc/conda/activate.d
         echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
@@ -98,7 +99,11 @@ There is another linear dense layer at the input to the LSTM/RNN (pink in the pi
 
         conda install -c conda-forge mpi4py openmpi
 
-4. Download the package
+4. Install `jVMC`:
+
+        pip install jVMC
+
+5. Download the package
 
         git clone https://github.com/tszoldra/jVMC_cavity
         
@@ -109,6 +114,6 @@ There is another linear dense layer at the input to the LSTM/RNN (pink in the pi
 
 6. [Optional] For GPU support:
 
-        pip install "jax[cuda11_cudnn82]==0.3.15" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+        pip install "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
         pip install --upgrade flax
      

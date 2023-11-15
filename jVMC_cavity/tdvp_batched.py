@@ -123,7 +123,7 @@ class TDVP_batched(TDVP):
         stop_timing(outp, "compute gradients", waitFor=sampleGradients)
 
         start_timing(outp, "solve TDVP eqn.")
-        update, solverResidual = self.solve(Eloc, sampleGradients, p)
+        update, solverResidual = self.solve(Eloc, sampleGradients)
         stop_timing(outp, "solve TDVP eqn.")
 
         if outp is not None:

@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import jVMC
 import jVMC.global_defs as global_defs
 from jVMC.nets.initializers import init_fn_args
-from jVMC.util.symmetries import LatticeSymmetry
+
 from jVMC.nets.rnn1d_general import RNNCellStack, RNNCell, LSTMCell, GRUCell
 
 from typing import Union
@@ -227,82 +227,6 @@ class RNN1DGeneral_LC(nn.Module):
         return jnp.nan_to_num(logProb, nan=-35), sampleOut
 
 
-class RNN1DGeneral_LCSym(nn.Module):
-    """
-    Implementation of an RNN which consists of an RNNCellStack with an additional output layer.
-    It uses the RNN class to compute probabilities and averages the outputs over all symmetry-invariant configurations.
-
-    Initialization arguments:
-        * ``orbit``: collection of maps that define symmetries (instance of ``util.symmetries.LatticeSymmetry``)
-        * ``L``: length of the spin chain
-        * ``hiddenSize``: size of the hidden state vector
-        * ``depth``: number of RNN-cells in the RNNCellStack
-        * ``inputDimLattice``: dimension of the local configuration space for lattice
-        * ``inputDimCavity``: dimension of the local configuration space for cavity
-        * ``actFun``: non-linear activation function for the RNN cells
-        * ``initScale``: factor by which the initial parameters are scaled
-        * ``logProbFactor``: factor defining how output and associated sample probability are related. 0.5 for pure states and 1 for POVMs.
-        * ``realValuedOutput``: Boolean indicating whether the network output is a real or complex number.
-        * ``realValuedParams``: Boolean indicating whether the network parameters are real or complex parameters.
-        * ``cell``: String ("RNN", "LSTM", or "GRU") or custom definition indicating which type of cell to use for hidden state transformations.
-
-    """
-    orbit: LatticeSymmetry
-    L: int = 10
-    hiddenSize: int = 10
-    depth: int = 1
-    inputDimLattice: int = 2
-    actFun: callable = nn.elu
-    inputDimCavity: int = 2
-    denseCavityLayers: tuple = (None,)
-
-
-    initScale: float = 1.0
-    logProbFactor: float = 0.5
-    realValuedOutput: bool = False
-    realValuedParams: bool = True
-    cell: Union[str, list] = "RNN"
-
-    def setup(self):
-
-        self.rnn = RNN1DGeneral_LC(L=self.L, hiddenSize=self.hiddenSize, depth=self.depth,
-                                inputDimLattice=self.inputDimLattice,
-                                actFun=self.actFun, inputDimCavity=self.inputDimCavity,
-                                denseCavityLayers=self.denseCavityLayers,
-                                initScale=self.initScale,
-                                logProbFactor=self.logProbFactor,
-                                realValuedOutput=self.realValuedOutput,
-                                realValuedParams=self.realValuedParams,
-                                cell=self.cell)  # bug in jVMC?
-
-    def __call__(self, x):
-
-        x = jax.vmap(lambda o, s: jnp.dot(o, s), in_axes=(0, None))(self.orbit.orbit, x)
-
-        def evaluate(x):
-            return self.rnn(x)
-
-        res = jnp.mean(jnp.exp((1. / self.logProbFactor) * jax.vmap(evaluate)(x)), axis=0)
-
-        logProbs = self.logProbFactor * jnp.log(res)
-
-        return logProbs
-
-    def sample(self, batchSize, key):
-
-        key1, key2 = jax.random.split(key)
-
-        configs = self.rnn.sample(batchSize, key1)
-
-        orbitIdx = jax.random.choice(key2, self.orbit.orbit.shape[0], shape=(batchSize,))
-
-        configs = jax.vmap(lambda k, o, s: jnp.dot(o[k], s), in_axes=(0, None, 0))(orbitIdx, self.orbit.orbit, configs)
-
-        return configs
-
-# ** end class RNN1DGeneral_LCSym
-
-
 class RNN1DGeneral_LC2(nn.Module):
     """
     Implementation of a multi-layer RNN for one-dimensional data with arbitrary cell.
@@ -491,81 +415,3 @@ class RNN1DGeneral_LC2(nn.Module):
         logProb = jnp.sum(logProbs * sample)
 
         return jnp.nan_to_num(logProb, nan=-35), sampleOut
-
-
-class RNN1DGeneral_LC2Sym(nn.Module):
-    """
-    Implementation of an RNN which consists of an RNNCellStack with an additional output layer.
-    It uses the RNN class to compute probabilities and averages the outputs over all symmetry-invariant configurations.
-
-    Initialization arguments:
-        * ``orbit``: collection of maps that define symmetries (instance of ``util.symmetries.LatticeSymmetry``)
-        * ``L``: length of the spin chain
-        * ``hiddenSizeLattice``: size of the hidden state vector, lattice part
-        * ``hiddenSizeCavity``: size of the hidden state vector, cavity part
-        * ``depth``: number of RNN-cells in the RNNCellStack
-        * ``inputDimLattice``: dimension of the local configuration space for lattice
-        * ``inputDimCavity``: dimension of the local configuration space for cavity
-        * ``actFun``: non-linear activation function for the RNN cells
-        * ``initScale``: factor by which the initial parameters are scaled
-        * ``logProbFactor``: factor defining how output and associated sample probability are related. 0.5 for pure states and 1 for POVMs.
-        * ``realValuedOutput``: Boolean indicating whether the network output is a real or complex number.
-        * ``realValuedParams``: Boolean indicating whether the network parameters are real or complex parameters.
-        * ``cell``: String ("RNN", "LSTM", or "GRU") or custom definition indicating which type of cell to use for hidden state transformations.
-
-    """
-    orbit: LatticeSymmetry
-    L: int = 10
-    hiddenSizeLattice: int = 10
-    hiddenSizeCavity: int = 10
-    depth: int = 1
-    inputDimLattice: int = 2
-    actFun: callable = nn.elu
-    inputDimCavity: int = 2
-
-
-    initScale: float = 1.0
-    logProbFactor: float = 0.5
-    realValuedOutput: bool = False
-    realValuedParams: bool = True
-    cell: Union[str, list] = "RNN"
-
-    def setup(self):
-
-        self.rnn = RNN1DGeneral_LC2(L=self.L, hiddenSizeLattice=self.hiddenSizeLattice,
-                                    hiddenSizeCavity=self.hiddenSizeCavity,
-                                    depth=self.depth,
-                                    inputDimLattice=self.inputDimLattice,
-                                    actFun=self.actFun, inputDimCavity=self.inputDimCavity,
-                                    initScale=self.initScale,
-                                    logProbFactor=self.logProbFactor,
-                                    realValuedOutput=self.realValuedOutput,
-                                    realValuedParams=self.realValuedParams,
-                                    cell=self.cell)  # bug in jVMC?
-
-    def __call__(self, x):
-
-        x = jax.vmap(lambda o, s: jnp.dot(o, s), in_axes=(0, None))(self.orbit.orbit, x)
-
-        def evaluate(x):
-            return self.rnn(x)
-
-        res = jnp.mean(jnp.exp((1. / self.logProbFactor) * jax.vmap(evaluate)(x)), axis=0)
-
-        logProbs = self.logProbFactor * jnp.log(res)
-
-        return logProbs
-
-    def sample(self, batchSize, key):
-
-        key1, key2 = jax.random.split(key)
-
-        configs = self.rnn.sample(batchSize, key1)
-
-        orbitIdx = jax.random.choice(key2, self.orbit.orbit.shape[0], shape=(batchSize,))
-
-        configs = jax.vmap(lambda k, o, s: jnp.dot(o[k], s), in_axes=(0, None, 0))(orbitIdx, self.orbit.orbit, configs)
-
-        return configs
-
-# ** end class RNN1DGeneral_LC2Sym

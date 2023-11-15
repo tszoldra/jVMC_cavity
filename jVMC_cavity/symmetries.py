@@ -65,9 +65,7 @@ def get_orbit_1d_LC(L, translation=True, reflection=True, translation_by_2=False
     to = get_translation_orbit_1D(L, translation)
     to_by_2 = get_translation_by_2_orbit_1D(L, translation_by_2)
 
-    #orbit = jax.vmap(lambda x, y: jax.vmap(lambda a, b: jnp.dot(a, b), in_axes=(None, 0))(x, y, z), in_axes=(0, None))(to,
-    #                                                                                                                po)
     orbit = jnp.einsum('aij, bjk, ckl -> abcil', to, po, to_by_2)
 
     orbit = orbit.reshape((-1, L+1, L+1))
-    return LatticeSymmetry(orbit.astype(np.int32))
+    return LatticeSymmetry(orbit.astype(np.int32), jnp.ones(orbit.shape[0]))

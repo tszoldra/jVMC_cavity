@@ -15,7 +15,7 @@ import functools
 opDtype = global_defs.tReal
 
 
-def measure_povm_LC(povm, sampler, sampleConfigs=None, probs=None, observables=None):
+def measure_povm_LC(povm, sampler, sampleConfigs=None, probs=None, observables=None, max_number_sites=None):
     """For a set of sampled configurations, compute the associated expectation values
     for a given set of observables. If none is provided, all observables defined in ``povm`` are computed.
 
@@ -30,17 +30,26 @@ def measure_povm_LC(povm, sampler, sampleConfigs=None, probs=None, observables=N
         * ``sampleConfigs``: optional, if configurations have already been generated
         * ``probs``: optional, the associated probabilities
         * ``observables``: optional, observables for which expectation values are computed
+        * ``max_number_sites``: how many consecutive sites to consider for computation of local expectation value.\
+                                For example, for translationally invariant system, ``max_number_sites=1`` is enough
+                                and saves time by a factor of the system size.
+                                The result is anyway averaged if the network has symmetry implemented.
+                                For translation_by_2 symmetry, set ``max_number_sites=2``.
     """
     if sampleConfigs == None:
         sampleConfigs, sampleLogPsi, probs = sampler.sample()
 
     if observables == None:
         observables = povm.observables
+
+    if max_number_sites is None:
+        max_number_sites = povm.L
+
     result = {}
 
     for name, ops in observables.items():
         if 'lattice' in ops and not 'cavity' in ops:  # measure lattice - first records 0...(L-1)
-            results = povm.evaluate_observable(ops['lattice'], sampleConfigs[:, :, :povm.L])
+            results = povm.evaluate_observable(ops['lattice'], sampleConfigs[:, :, :max_number_sites])
         elif 'cavity' in ops and not 'lattice' in ops:  # measure cavity - last record with index L
             results = povm.evaluate_observable(ops['cavity'], sampleConfigs[:, :, povm.L:])
         else:
@@ -52,9 +61,9 @@ def measure_povm_LC(povm, sampler, sampleConfigs=None, probs=None, observables=N
 
         for site in range(results[0].shape[2]):
             if probs is not None:
-                result[name]["mean"][site] = jnp.array(mpi.global_mean(results[0][:, :, site], probs))
-                result[name]["variance"][site] = jnp.array(mpi.global_variance(results[0][:, :, site], probs))
-                result[name]["MC_error"][site] = jnp.array(0)
+                result[name]["mean"][site] = jnp.array(mpi.global_mean(results[0][:, :, site][..., None], probs)[0])
+                result[name]["variance"][site] = jnp.array(mpi.global_variance(results[0][:, :, site][..., None], probs)[0])
+                result[name]["MC_error"][site] = jnp.array(result[name]["variance"][site] / jnp.sqrt(sampler.get_last_number_of_samples()))
             else:
                 result[name]["mean"][site] = jnp.array(mpi.global_mean(results[0][:, :, site]))
                 result[name]["variance"][site] = jnp.array(mpi.global_variance(results[0][:, :, site]))
@@ -66,11 +75,11 @@ def measure_povm_LC(povm, sampler, sampleConfigs=None, probs=None, observables=N
             for corrLen, corrVals in results[1].items():
                 result_name = name + "_corr_L" + str(corrLen)
 
-                result[result_name] = {"mean": [None] * povm.L,
-                                       "variance": [None] * povm.L,
-                                       "MC_error": [None] * povm.L}
+                result[result_name] = {"mean": [None] * max_number_sites,
+                                       "variance": [None] * max_number_sites,
+                                       "MC_error": [None] * max_number_sites}
 
-                for site in range(povm.L):
+                for site in range(max_number_sites):
                     if probs is not None:
                         result[result_name]["mean"][site] = jnp.array(mpi.global_mean(corrVals[:, :, site], probs) - result[name]["mean"][site]**2)
                         result[result_name]["variance"][site] = jnp.array(mpi.global_variance(corrVals[:, :, site], probs))
@@ -471,6 +480,7 @@ class Operator(jVMC.operator.Operator):
         self._alloc_Oloc_pmapd = global_defs.pmap_for_my_devices(
             lambda s: jnp.zeros(s.shape[0], dtype=global_defs.tReal))
         # in the POVM space, the values of Oloc are real
+        # this is a hotfix for a bug with Oloc_batched in TDVP
 
 
 class POVMOperator_LC(Operator):
